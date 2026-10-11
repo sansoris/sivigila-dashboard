@@ -35,17 +35,38 @@ st.markdown("---")
 
 @st.cache_data
 def cargar_datos_desde_drive_directo():
-    # Enlace de descarga directa forzado sin variables intermedias
-    url_directa = "https://google.com"
+    # ID real de tu archivo consolidado de Sivigila
+    id_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
+    
+    # 1. Crear una sesión de descarga para simular un navegador real
+    session = requests.Session()
+    url_base = "https://google.com"
+    
     try:
-        # Descarga y lee el Excel masivo usando el motor calamine
-        df_raw = pd.read_excel(url_directa, engine="calamine")
+        # Primera petición para detectar si Google pone la página de alerta de virus
+        response = session.get(url_base, params={"id": id_drive}, stream=True)
+        token = None
+        
+        # Buscar el token de confirmación de "omitir aviso de virus" en las cookies
+        for key, value in response.cookies.items():
+            if key.startswith("download_warning"):
+                token = value
+                break
+                
+        # Si Google pide confirmación por tamaño masivo, enviamos el token de aprobación
+        if token:
+            params = {"id": id_drive, "confirm": token}
+            response = session.get(url_base, params=params, stream=True)
+            
+        # 2. Convertir los bytes descargados directamente en un DataFrame usando calamine
+        df_raw = pd.read_excel(io.BytesIO(response.content), engine="calamine")
         return df_raw
+        
     except Exception as e:
-        st.error(f"Error crítico al conectar con Google Drive: {e}")
+        st.error(f"Error crítico de infraestructura al procesar el Excel: {e}")
         return None
 
-# Llamamos a la nueva función limpia
+# Ejecutar la carga directa purificada
 df = cargar_datos_desde_drive_directo()
 
 if df is None:
