@@ -206,20 +206,25 @@ if df is not None:
             fig_mapa_seguro.update_geos(center=dict(lon=-74.0, lat=4.5), projection_scale=6, showcountries=True, countrycolor="Silver", showland=True, landcolor="White")
             fig_mapa_seguro.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
             st.plotly_chart(fig_mapa_seguro, use_container_width=True)
-            with pestana3:
-            g3, g4 = st.columns(2)
-            with g3:
+
+    with pestana3:
+        # Nota cómo todas las líneas de abajo llevan una sangría extra hacia la derecha
+        g3, g4 = st.columns(2)
+        with g3:
             if "nom_grupo" in df_filtrado.columns:
-            df_grupo = df_filtrado.groupby("nom_grupo").size().reset_index(name="Casos").sort_values(by="Casos", ascending=False)
-            fig_grupo = px.pie(df_grupo.head(7), names="nom_grupo", values="Casos", title="Distribución por Grupos Poblacionales Especiales")
-            st.plotly_chart(fig_grupo, use_container_width=True)
-            with g4:
+                df_grupo = df_filtrado.groupby("nom_grupo").size().reset_index(name="Casos").sort_values(by="Casos", ascending=False)
+                fig_grupo = px.pie(df_grupo.head(7), names="nom_grupo", values="Casos", title="Distribución por Grupos Poblacionales Especiales")
+                st.plotly_chart(fig_grupo, use_container_width=True)
+        with g4:
             if "estrato" in df_filtrado.columns:
-            df_estrato = df_filtrado.groupby("estrato").size().reset_index(name="Casos")
-            fig_estrato = px.bar(df_estrato, x="estrato", y="Casos", title="Frecuencia de Casos por Estrato Socioeconómico", text_auto=True)
-            st.plotly_chart(fig_estrato, use_container_width=True)
-            
-# --- BUSCADOR COMPLETO ---
-        st.markdown("---")
-        with st.expander("🔍 Buscador de Registros Clínicos Completos (Fila por Fila)"):
+                df_estrato = df_filtrado.groupby("estrato").size().reset_index(name="Casos")
+                fig_estrato = px.bar(df_estrato, x="estrato", y="Casos", title="Frecuencia de Casos por Estrato Socioeconómico", text_auto=True)
+                st.plotly_chart(fig_estrato, use_container_width=True)
+
+    # --- BUSCADOR COMPLETO ---
+    st.markdown("---")
+    with st.expander("🔍 Buscador de Registros Clínicos Completos (Fila por Fila)"):
         st.dataframe(df_filtrado.head(500), use_container_width=True)
+else:
+    st.error("No se pudo inicializar la base de datos de Sivigila.")
+
