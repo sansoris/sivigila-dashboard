@@ -29,12 +29,21 @@ st.caption("Análisis de datos consolidados de Vigilancia en Salud Pública (Siv
 st.markdown("---")
 
 # 2. SISTEMA DE CARGA DIRECTA DESDE GITHUB RELEASES
+# --- 2. SISTEMA DE CARGA CON AUTODETECCIÓN DE RELEASES ---
 @st.cache_data
 def cargar_datos_sivigila_directo():
-   
-    url_directa_excel = "https://github.com/sansoris/sivigila-dashboard/releases/download/v1.0.0/base_datos_unificada.xlsx"
-
+    # Esta estructura inteligente detecta el nombre de tu usuario en GitHub automáticamente
     try:
+        # Buscamos el repositorio actual en la máquina virtual de Streamlit
+        repo_actual = os.getenv("STREAMLIT_GIT_REPO", "")
+        if repo_actual:
+            # Si detecta el repositorio, extrae el usuario e integra la descarga directa
+            usuario_github = repo_actual.split("/")[0]
+            url_directa_excel = f"https://github.com{usuario_github}/sivigila-dashboard/releases/download/v1.0.0/base_datos_unificada.xlsx"
+        else:
+            # Ruta de respaldo por si se ejecuta de forma local o externa
+            url_directa_excel = "https://github.comcaticoa3/colombia_mapa/raw/master/base_datos_unificada.xlsx"
+
         # Descarga y procesa las 315.832 filas en la nube usando calamine
         df_raw = pd.read_excel(url_directa_excel, engine="calamine")
         
@@ -54,8 +63,6 @@ def cargar_datos_sivigila_directo():
         st.error(f"Error al procesar el archivo unificado de las Releases: {e}")
         return None
 
-# Ejecutar la carga directa
-df = cargar_datos_sivigila_directo()
 
 # 3. VERIFICAR DESPLIEGUE DEL INFORME
 if df is not None:
