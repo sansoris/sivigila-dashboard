@@ -28,33 +28,46 @@ st.caption("Análisis de datos consolidados de Vigilancia en Salud Pública (Siv
 st.markdown("---")
 
 # 2. SISTEMA DE CARGA DIRECTA DESDE RELEASES PÚBLICAS
+# --- 2. SISTEMA DE CARGA DIRECTA COMPRIMIDA PARQUET ---
 @st.cache_data
 def cargar_datos_sivigila_directo():
-    # Enlace de respaldo seguro que contiene exactamente tu base unificada de 315.832 filas
-    url_directa_excel = "https://github.com"
+    # El código buscará el archivo ligero dentro de tu propio repositorio de GitHub
+    ruta_archivo_parquet = "base_datos_unificada.parquet"
 
     try:
-        # Descarga y procesa la matriz masiva en la nube usando el motor calamine
-        df_raw = pd.read_excel(url_directa_excel, engine="calamine")
-        
+        # Pandas lee Parquet de forma nativa e instantánea
+        df_raw = pd.read_parquet(ruta_archivo_parquet)
+
         # Limpieza estándar de nombres de columnas
         df_raw.columns = [str(c).strip() for c in df_raw.columns]
-        
+
         # Homologar la variable SEXO
         if "SEXO" in df_raw.columns:
             df_raw["SEXO"] = (
                 df_raw["SEXO"]
                 .astype(str)
                 .str.upper()
-                .replace({"1": "MASCULINO", "2": "FEMENINO", "M": "MASCULINO", "F": "FEMENINO"})
+                .replace(
+                    {
+                        "1": "MASCULINO",
+                        "2": "FEMENINO",
+                        "M": "MASCULINO",
+                        "F": "FEMENINO",
+                    }
+                )
             )
         return df_raw
     except Exception as e:
-        st.error(f"Error al procesar el archivo unificado de las Releases: {e}")
+        st.error(f"Error al procesar el archivo Parquet comprimido: {e}")
         return None
+
 
 # Ejecutar la carga directa
 df = cargar_datos_sivigila_directo()
+
+
+# ------------------------------------------------------
+
 
 # 3. CONSTRUCCIÓN DEL INFORME (Se ejecuta solo si la descarga es exitosa)
 if df is not None:
