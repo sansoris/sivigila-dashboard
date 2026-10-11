@@ -35,41 +35,27 @@ st.markdown("---")
 # Enlace de descarga directa nativo para archivos de Excel (.xlsx) subidos a Drive
 # ruta_archivo = "https://google.com"
 
+# --- SISTEMA DE CARGA DIRECTA DESDE GITHUB RELEASES ---
+
+
 @st.cache_data
-def cargar_datos_desde_drive_directo():
-    # ID real de tu archivo consolidado de Sivigila
-    id_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
-    
-    # 1. Crear una sesión de descarga para simular un navegador real
-    session = requests.Session()
-    url_base = "https://google.com"
-    
+def cargar_datos_sivigila_directo():
+    # PEGA AQUÍ ADENTRO DE LAS COMILLAS EL ENLACE REAL QUE COPIASTE EN EL PASO 1
+    url_directa_excel = "https://github.com/sansoris/sivigila-dashboard/releases/download/v1.0.0/base_datos_unificada.xlsx"
+
     try:
-        # Primera petición para detectar si Google pone la página de alerta de virus
-        response = session.get(url_base, params={"id": id_drive}, stream=True)
-        token = None
-        
-        # Buscar el token de confirmación de "omitir aviso de virus" en las cookies
-        for key, value in response.cookies.items():
-            if key.startswith("download_warning"):
-                token = value
-                break
-                
-        # Si Google pide confirmación por tamaño masivo, enviamos el token de aprobación
-        if token:
-            params = {"id": id_drive, "confirm": token}
-            response = session.get(url_base, params=params, stream=True)
-            
-        # 2. Convertir los bytes descargados directamente en un DataFrame usando calamine
-        df_raw = pd.read_excel(io.BytesIO(response.content), engine="calamine")
+        # Descarga y procesa las 315.832 filas sin restricciones en la nube
+        df_raw = pd.read_excel(url_directa_excel, engine="calamine")
         return df_raw
-        
     except Exception as e:
-        st.error(f"Error crítico de infraestructura al procesar el Excel: {e}")
+        st.error(f"Error al procesar el archivo unificado de las Releases: {e}")
         return None
 
-# Ejecutar la carga directa purificada
-df = cargar_datos_desde_drive_directo()
+
+# Ejecutar la carga directa en la nube
+df = cargar_datos_sivigila_directo()
+# ------------------------------------------------------
+
 
 if df is None:
     st.error(f"❌ No se encontró el archivo consolidado en: {ruta_archivo}")
