@@ -1,16 +1,14 @@
-import io
 import os
 import pandas as pd
 import plotly.express as px
-import requests  
 import streamlit as st
 
-# Configuración del Dashboard profesional
+# 1. Configuración del Dashboard Profesional
 st.set_page_config(
     page_title="Sivigila - Intento de Suicidio", layout="wide", page_icon="🧠"
 )
 
-# Estilos CSS para mejorar el diseño de las tarjetas
+# Estilos CSS para las tarjetas del reporte
 st.markdown(
     """
     <style>
@@ -26,52 +24,53 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("🧠 Dashboard: Intento de Suicidio en Colombia")
-st.caption("Análisis de datos consolidados de Vigilancia en Salud Pública (Sivigila)")
+st.title("🧠 Dashboard Epidemiológico: Intento de Suicidio en Colombia")
+st.caption("Análisis de datos consolidados de Vigilancia en Salud Pública (Sivigila) | Período 2016 - 2025")
 st.markdown("---")
 
-# id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
-
-# Enlace de descarga directa nativo para archivos de Excel (.xlsx) subidos a Drive
-# ruta_archivo = "https://google.com"
-
-# --- SISTEMA DE CARGA DIRECTA DESDE GITHUB RELEASES ---
-
-
+# 2. SISTEMA DE CARGA DIRECTA DESDE GITHUB RELEASES
 @st.cache_data
 def cargar_datos_sivigila_directo():
-    # PEGA AQUÍ ADENTRO DE LAS COMILLAS EL ENLACE REAL QUE COPIASTE EN EL PASO 1
-    url_directa_excel = "https://github.com/sansoris/sivigila-dashboard/releases/download/v1.0.0/base_datos_unificada.xlsx"
+    # REEMPLAZA ÚNICAMENTE EL ENLACE DE ABAJO CON TU LINK REAL DE GITHUB RELEASES SI ES DIFERENTE
+    url_directa_excel = "https://github.com"
 
     try:
-        # Descarga y procesa las 315.832 filas sin restricciones en la nube
+        # Descarga y procesa las 315.832 filas en la nube usando calamine
         df_raw = pd.read_excel(url_directa_excel, engine="calamine")
+        
+        # Limpieza estándar de nombres de columnas
+        df_raw.columns = [str(c).strip() for c in df_raw.columns]
+        
+        # Homologar la variable SEXO
+        if "SEXO" in df_raw.columns:
+            df_raw["SEXO"] = (
+                df_raw["SEXO"]
+                .astype(str)
+                .str.upper()
+                .replace({"1": "MASCULINO", "2": "FEMENINO", "M": "MASCULINO", "F": "FEMENINO"})
+            )
         return df_raw
     except Exception as e:
         st.error(f"Error al procesar el archivo unificado de las Releases: {e}")
         return None
 
-
-# Ejecutar la carga directa en la nube
+# Ejecutar la carga directa
 df = cargar_datos_sivigila_directo()
-# ------------------------------------------------------
 
-
-if df is None:
-    st.error(f"❌ No se encontró el archivo consolidado en: {ruta_archivo}")
-else:
+# 3. VERIFICAR DESPLIEGUE DEL INFORME
+if df is not None:
     # --- PANEL LATERAL DE FILTROS ---
     st.sidebar.header("🔍 Filtros de Población")
 
-    # Filtro 1: Año
+    # Filtro 1: Año (Descendente)
     lista_años = (
-        sorted(df["ANO"].dropna().unique().astype(int).tolist(), reverse = True)
+        sorted(df["ANO"].dropna().unique().astype(int).tolist(), reverse=True)
         if "ANO" in df.columns
         else []
     )
     años_sel = st.sidebar.multiselect("Filtrar por Año(s):", lista_años, default=lista_años)
 
-    # Filtro 2: Departamento de Residencia
+    # Filtro 2: Departamento de Residencia (Ascendente)
     lista_dptos = (
         sorted(df["Departamento_residencia"].dropna().unique().tolist())
         if "Departamento_residencia" in df.columns
@@ -79,11 +78,10 @@ else:
     )
     dptos_sel = st.sidebar.multiselect("Filtrar por Departamento:", lista_dptos)
 
-# 3. Filtro 3: Selectores de Vulnerabilidades de Sivigila (Solo filtra los que son igual a 1)
+    # Filtro 3: Selectores de Vulnerabilidades de Sivigila (Solo filtra los que son igual a 1)
     st.sidebar.markdown("---")
     st.sidebar.subheader("👥 Grupos de Riesgo y Vulnerabilidad")
     
-    # Mapeo de columnas técnicas a nombres entendibles para el informe
     diccionario_vulnerabilidades = {
         "Ninguno": "Ninguno",
         "GP_PSIQUIA": "🧠 Con Antecedente Psiquiátrico",
@@ -100,43 +98,28 @@ else:
         "GP_OTROS": "📁 Otros Grupos Especiales"
     }
     
-    # Crear el menú desplegable en la barra lateral usando los nombres claros
     vulnerabilidad_elegida = st.sidebar.selectbox(
         "Filtrar por Factor Específico (Solo Casos = SI):",
         options=list(diccionario_vulnerabilidades.values())
     )
 
-
-    # Aplicar Filtros en cascada
+    # --- APLICACIÓN DE LOS FILTROS ---
     df_filtrado = df.copy()
-    
-    # Filtrar por Año
     if años_sel:
         df_filtrado = df_filtrado[df_filtrado["ANO"].isin(años_sel)]
-    
-    # Filtrar por Departamento
     if dptos_sel:
         df_filtrado = df_filtrado[df_filtrado["Departamento_residencia"].isin(dptos_sel)]
-        
-    # Filtrar por la vulnerabilidad seleccionada (Buscamos el valor 1 o '1' o 1.0)
     if vulnerabilidad_elegida != "Ninguno":
-        # Conseguimos el nombre técnico de la columna original usando el diccionario inverso
         columna_tecnica = [k for k, v in diccionario_vulnerabilidades.items() if v == vulnerabilidad_elegida][0]
-        
         if columna_tecnica in df_filtrado.columns:
-            # Filtramos filas donde el valor sea exactamente 1, '1' o 1.0
             df_filtrado = df_filtrado[df_filtrado[columna_tecnica].astype(str).str.startswith(('1', '1.0'))]
-    
-    
+
     # --- INDICADORES CLAVE (KPIs) ---
     st.markdown("### 📊 Indicadores Clave del Período Seleccionado")
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
 
     with kpi1:
-        st.markdown(
-            f"<div class='metric-box'><h5>📉 Total Casos</h5><h2>{len(df_filtrado):,}</h2></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"<div class='metric-box'><h5>📉 Total Casos</h5><h2>{len(df_filtrado):,}</h2></div>", unsafe_allow_html=True)
 
     with kpi2:
         if "EDAD" in df_filtrado.columns:
@@ -144,10 +127,7 @@ else:
             val_edad = f"{edad_prom:.1f} años" if not pd.isna(edad_prom) else "N/A"
         else:
             val_edad = "N/A"
-        st.markdown(
-            f"<div class='metric-box'><h5>🧑‍⚕️ Promedio de Edad</h5><h2>{val_edad}</h2></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"<div class='metric-box'><h5>🧑‍⚕️ Promedio de Edad</h5><h2>{val_edad}</h2></div>", unsafe_allow_html=True)
 
     with kpi3:
         if "SEXO" in df_filtrado.columns and len(df_filtrado) > 0:
@@ -156,36 +136,23 @@ else:
             val_sexo = f"{porc_mujeres:.1f}%"
         else:
             val_sexo = "N/A"
-        st.markdown(
-            f"<div class='metric-box'><h5>👩 % Casos Mujeres</h5><h2>{val_sexo}</h2></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"<div class='metric-box'><h5>👩 % Casos Mujeres</h5><h2>{val_sexo}</h2></div>", unsafe_allow_html=True)
 
     with kpi4:
         if "PAC_HOS" in df_filtrado.columns and len(df_filtrado) > 0:
-            # 1 suele significar Sí Hospitalizado en Sivigila
-            hosp = len(
-                df_filtrado[df_filtrado["PAC_HOS"].astype(str).str.startswith(("1", "S", "s"))]
-            )
+            hosp = len(df_filtrado[df_filtrado["PAC_HOS"].astype(str).str.startswith(("1", "S", "s"))])
             porc_hosp = (hosp / len(df_filtrado)) * 100
             val_hosp = f"{porc_hosp:.1f}%"
         else:
             val_hosp = "N/A"
-        st.markdown(
-            f"<div class='metric-box'><h5>🏥 % Hospitalización</h5><h2>{val_hosp}</h2></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"<div class='metric-box'><h5>🏥 % Hospitalización</h5><h2>{val_hosp}</h2></div>", unsafe_allow_html=True)
 
-    # --- SECCIÓN DE GRÁFICOS INTERACTIVOS (CON MAPA INCLUIDO) ---
+    # --- SECCIÓN DE GRÁFICOS INTERACTIVOS ---
     st.markdown("---")
     st.markdown("### 📈 Visualización y Análisis Epidemiológico")
 
-    # Creamos 4 pestañas ahora, incluyendo el Mapa de Calor
     pestana1, pestana2, pestana_mapa, pestana3 = st.tabs([
-        "📈 Tendencia & Demografía", 
-        "📊 Análisis Geográfico", 
-        "🗺️ Mapa de Calor (Colombia)", # Nueva pestaña
-        "👥 Factores Vulnerables"
+        "📈 Tendencia & Demografía", "📊 Análisis Geográfico", "🗺️ Mapa de Calor (Colombia)", "👥 Factores Vulnerables"
     ])
 
     with pestana1:
@@ -193,39 +160,26 @@ else:
         with g1:
             if "ANO" in df_filtrado.columns:
                 df_linea = df_filtrado.groupby(["ANO", "SEXO"]).size().reset_index(name="Casos")
-                fig_linea = px.line(
-                    df_linea, x="ANO", y="Casos", color="SEXO",
-                    title="Evolución Histórica de Casos por Sexo", markers=True
-                )
+                fig_linea = px.line(df_linea, x="ANO", y="Casos", color="SEXO", title="Evolución Histórica de Casos por Sexo", markers=True)
                 st.plotly_chart(fig_linea, use_container_width=True)
         with g2:
             if "EDAD" in df_filtrado.columns:
-                fig_hist = px.histogram(
-                    df_filtrado, x="EDAD", color="SEXO", nbins=20,
-                    title="Distribución de Casos por Edad y Sexo", barmode="group"
-                )
+                fig_hist = px.histogram(df_filtrado, x="EDAD", color="SEXO", nbins=20, title="Distribución de Casos por Edad y Sexo", barmode="group")
                 st.plotly_chart(fig_hist, use_container_width=True)
 
     with pestana2:
         if "Departamento_residencia" in df_filtrado.columns:
             df_mapa = df_filtrado.groupby("Departamento_residencia").size().reset_index(name="Casos").sort_values(by="Casos", ascending=False)
-            fig_mapa = px.bar(
-                df_mapa.head(15), x="Casos", y="Departamento_residencia", orientation="h",
-                title="Top 15 Departamentos con Mayor Reporte", color="Casos", color_continuous_scale="Reds"
-            )
+            fig_mapa = px.bar(df_mapa.head(15), x="Casos", y="Departamento_residencia", orientation="h", title="Top 15 Departamentos con Mayor Reporte", color="Casos", color_continuous_scale="Reds")
             fig_mapa.update_layout(yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_mapa, use_container_width=True)
 
-    # --- PESTAÑA DEL MAPA SEGURO SIN DEPENDENCIAS DE INTERNET ---
     with pestana_mapa:
         st.write("#### 🗺️ Distribución Geográfica Nacional de Casos")
         if "Departamento_residencia" in df_filtrado.columns:
-            
-            # 1. Agrupar los datos contando los casos por departamento
             df_geo = df_filtrado.groupby("Departamento_residencia").size().reset_index(name="Total Casos")
             df_geo["Departamento_residencia"] = df_geo["Departamento_residencia"].astype(str).str.upper().str.strip()
             
-            # 2. Diccionario nativo con las coordenadas geográficas de los centros de cada departamento de Colombia
             coordenadas_colombia = {
                 "AMAZONAS": [1.4469, -71.5222], "ANTIOQUIA": [6.2442, -75.5812], "ARAUCA": [7.0847, -70.7591],
                 "ATLANTICO": [10.9639, -74.7964], "BOGOTA": [4.7110, -74.0721], "BOGOTA D.C.": [4.7110, -74.0721], "BOGOTÁ, D.C.": [4.7110, -74.0721],
@@ -240,72 +194,32 @@ else:
                 "TOLIMA": [4.4389, -75.2322], "VALLE DEL CAUCA": [3.4516, -76.5320], "VAUPES": [1.1984, -70.1733], "VICHADA": [6.1848, -67.4858]
             }
             
-            # 3. Mapear las coordenadas directamente sobre el DataFrame consolidado
             df_geo["latitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None])[0])
             df_geo["longitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None])[1])
-            
-            # Eliminar filas que no tengan coordenadas mapeadas
             df_geo = df_geo.dropna(subset=["latitud", "longitud"])
             
-            # 4. Crear el mapa de burbujas integrado de Plotly
             fig_mapa_seguro = px.scatter_geo(
-                df_geo,
-                lat="latitud",
-                lon="longitud",
-                size="Total Casos",                  # El tamaño de la burbuja depende del volumen de intentos
-                color="Total Casos",                 # El color cambia según la gravedad
-                hover_name="Departamento_residencia", # Muestra el departamento al pasar el mouse
-                color_continuous_scale="Reds",
-                title="Focos Epidemiológicos de Intento de Suicidio en Colombia",
-                size_max=40                          # Tamaño máximo visual del círculo
+                df_geo, lat="latitud", lon="longitud", size="Total Casos", color="Total Casos",
+                hover_name="Departamento_residencia", color_continuous_scale="Reds", title="Focos Epidemiológicos de Intento de Suicidio en Colombia", size_max=40
             )
-            
-            # Ajustar la cámara global para hacer un zoom directo sobre las coordenadas del territorio colombiano
-            fig_mapa_seguro.update_geos(
-                center=dict(lon=-74.0, lat=4.5),      # Coordenadas geográficas de Colombia
-                projection_scale=6,                  # Ajuste de zoom óptimo
-                showcountries=True,
-                countrycolor="Silver",
-                showland=True,
-                landcolor="White"
-            )
-            fig_mapa_seguro.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
-            
-            # Renderizar el mapa en la pestaña
-            st.plotly_chart(fig_mapa_seguro, use_container_width=True)
-        else:
-            st.warning("No se encontró la columna 'Departamento_residencia' para generar las burbujas geográficas.")
-    with pestana3:
-        g3, g4 = st.columns(2)
-        with g3:
-            if "nom_grupo" in df_filtrado.columns:
-                df_grupo = (
-                    df_filtrado.groupby("nom_grupo")
-                    .size()
-                    .reset_index(name="Casos")
-                    .sort_values(by="Casos", ascending=False)
-                )
-                fig_grupo = px.pie(
-                    df_grupo.head(7),
-                    names="nom_grupo",
-                    values="Casos",
-                    title="Distribución por Grupos Poblacionales Especiales",
-                )
-                st.plotly_chart(fig_grupo, use_container_width=True)
-        with g4:
-            if "estrato" in df_filtrado.columns:
-                df_estrato = df_filtrado.groupby("estrato").size().reset_index(name="Casos")
-                fig_estrato = px.bar(
-                    df_estrato,
-                    x="estrato",
-                    y="Casos",
-                    title="Frecuencia de Casos por Estrato Socioeconómico",
-                    text_auto=True,
-                )
-                st.plotly_chart(fig_estrato, use_container_width=True)
 
-    # --- BUSCADOR COMPLETO ---
-    st.markdown("---")
-    with st.expander("🔍 Buscador de Registros Clínicos Completos (Fila por Fila)"):
-        st.write("Usa la casilla de búsqueda de la tabla para buscar municipios, EPS o condiciones:")
+            fig_mapa_seguro.update_geos(center=dict(lon=-74.0, lat=4.5), projection_scale=6, showcountries=True, countrycolor="Silver", showland=True, landcolor="White")
+            fig_mapa_seguro.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
+            st.plotly_chart(fig_mapa_seguro, use_container_width=True)
+            with pestana3:
+            g3, g4 = st.columns(2)
+            with g3:
+            if "nom_grupo" in df_filtrado.columns:
+            df_grupo = df_filtrado.groupby("nom_grupo").size().reset_index(name="Casos").sort_values(by="Casos", ascending=False)
+            fig_grupo = px.pie(df_grupo.head(7), names="nom_grupo", values="Casos", title="Distribución por Grupos Poblacionales Especiales")
+            st.plotly_chart(fig_grupo, use_container_width=True)
+            with g4:
+            if "estrato" in df_filtrado.columns:
+            df_estrato = df_filtrado.groupby("estrato").size().reset_index(name="Casos")
+            fig_estrato = px.bar(df_estrato, x="estrato", y="Casos", title="Frecuencia de Casos por Estrato Socioeconómico", text_auto=True)
+            st.plotly_chart(fig_estrato, use_container_width=True)
+            
+# --- BUSCADOR COMPLETO ---
+        st.markdown("---")
+        with st.expander("🔍 Buscador de Registros Clínicos Completos (Fila por Fila)"):
         st.dataframe(df_filtrado.head(500), use_container_width=True)
