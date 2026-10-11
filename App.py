@@ -31,9 +31,7 @@ st.markdown("---")
 # id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
 
 # Enlace de descarga directa nativo para archivos de Excel (.xlsx) subidos a Drive
-ruta_archivo = "https://google.com"
-
-
+# ruta_archivo = "https://google.com"
 
 @st.cache_data
 def cargar_datos_desde_drive_directo():
