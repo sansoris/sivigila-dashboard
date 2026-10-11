@@ -189,6 +189,8 @@ if df is not None:
     with pestana_mapa:
         st.write("#### 🗺️ Distribución Geográfica Nacional de Casos")
         if "Departamento_residencia" in df_filtrado.columns:
+            
+            # 1. Agrupar los datos contando los casos por departamento
             df_geo = df_filtrado.groupby("Departamento_residencia").size().reset_index(name="Total Casos")
             df_geo["Departamento_residencia"] = df_geo["Departamento_residencia"].astype(str).str.upper().str.strip()
             
@@ -206,19 +208,26 @@ if df is not None:
                 "TOLIMA": [4.4389, -75.2322], "VALLE DEL CAUCA": [3.4516, -76.5320], "VAUPES": [1.1984, -70.1733], "VICHADA": [6.1848, -67.4858]
             }
             
-            df_geo["latitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None]))
-            df_geo["longitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None]))
+            # Mapear las coordenadas
+            df_geo["latitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None])[0])
+            df_geo["longitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None])[1])
+            
             df_geo = df_geo.dropna(subset=["latitud", "longitud"])
             
+            # 💡 LAS DOS LÍNEAS DE CORRECCIÓN CRUCIALES:
+            # Forzamos a que latitud y longitud sean reconocidas como números flotantes por Plotly
+            df_geo["latitud"] = pd.to_numeric(df_geo["latitud"], errors="coerce")
+            df_geo["longitud"] = pd.to_numeric(df_geo["longitud"], errors="coerce")
+            
+            # 4. Crear el mapa de burbujas integrado de Plotly
             fig_mapa_seguro = px.scatter_geo(
                 df_geo, lat="latitud", lon="longitud", size="Total Casos", color="Total Casos",
                 hover_name="Departamento_residencia", color_continuous_scale="Reds", title="Focos Epidemiológicos de Intento de Suicidio en Colombia", size_max=40
             )
-
-
             fig_mapa_seguro.update_geos(center=dict(lon=-74.0, lat=4.5), projection_scale=6, showcountries=True, countrycolor="Silver", showland=True, landcolor="White")
             fig_mapa_seguro.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
             st.plotly_chart(fig_mapa_seguro, use_container_width=True)
+
 
     with pestana3:
         # Nota cómo todas las líneas de abajo llevan una sangría extra hacia la derecha
