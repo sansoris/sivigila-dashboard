@@ -28,10 +28,10 @@ st.title("🧠 Dashboard: Intento de Suicidio en Colombia")
 st.caption("Análisis de datos consolidados de Vigilancia en Salud Pública (Sivigila)")
 st.markdown("---")
 
-id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
+# id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
 
 # Enlace de descarga directa nativo para archivos de Excel (.xlsx) subidos a Drive
-ruta_archivo = f"https://google.com{id_google_drive}"
+ruta_archivo = "https://google.com"
 
 
 
