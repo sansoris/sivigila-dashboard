@@ -31,8 +31,8 @@ st.markdown("---")
 # 2. SISTEMA DE CARGA DIRECTA DESDE GITHUB RELEASES
 @st.cache_data
 def cargar_datos_sivigila_directo():
-    # REEMPLAZA ÚNICAMENTE EL ENLACE DE ABAJO CON TU LINK REAL DE GITHUB RELEASES SI ES DIFERENTE
-    url_directa_excel = "https://github.com"
+   
+    url_directa_excel = "https://github.com/sansoris/sivigila-dashboard/releases/download/v1.0.0/base_datos_unificada.xlsx"
 
     try:
         # Descarga y procesa las 315.832 filas en la nube usando calamine
