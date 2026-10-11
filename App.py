@@ -36,24 +36,19 @@ ruta_archivo = "https://google.com"
 
 
 @st.cache_data
-def cargar_datos_sivigila():
-    if os.path.exists(ruta_archivo):
-        df_raw = pd.read_excel(ruta_archivo, engine="calamine")
-        # Limpieza rápida de columnas
-        df_raw.columns = [str(c).strip() for c in df_raw.columns]
-        # Homologar la variable SEXO por si viene en números o letras
-        if "SEXO" in df_raw.columns:
-            df_raw["SEXO"] = (
-                df_raw["SEXO"]
-                .astype(str)
-                .str.upper()
-                .replace({"1": "MASCULINO", "2": "FEMENINO", "M": "MASCULINO", "F": "FEMENINO"})
-            )
+def cargar_datos_desde_drive_directo():
+    # Enlace de descarga directa forzado sin variables intermedias
+    url_directa = "https://google.com"
+    try:
+        # Descarga y lee el Excel masivo usando el motor calamine
+        df_raw = pd.read_excel(url_directa, engine="calamine")
         return df_raw
-    return None
+    except Exception as e:
+        st.error(f"Error crítico al conectar con Google Drive: {e}")
+        return None
 
-
-df = cargar_datos_sivigila()
+# Llamamos a la nueva función limpia
+df = cargar_datos_desde_drive_directo()
 
 if df is None:
     st.error(f"❌ No se encontró el archivo consolidado en: {ruta_archivo}")
