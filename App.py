@@ -33,7 +33,7 @@ st.markdown("---")
 id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
 
 # Esta estructura limpia se encargará de descargar el Excel de forma automática
-ruta_archivo = f'https://google.com{id_google_drive}/export?format=xlsx'
+ruta_archivo = f"https://google.com{id_google_drive}/export?format=xlsx"
 
 
 
