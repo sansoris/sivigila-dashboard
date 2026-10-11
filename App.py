@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -8,7 +7,7 @@ st.set_page_config(
     page_title="Sivigila - Intento de Suicidio", layout="wide", page_icon="🧠"
 )
 
-# Estilos CSS para las tarjetas del reporte
+# Estilos CSS para las tarjetas de reporte
 st.markdown(
     """
     <style>
@@ -28,23 +27,14 @@ st.title("🧠 Dashboard Epidemiológico: Intento de Suicidio en Colombia")
 st.caption("Análisis de datos consolidados de Vigilancia en Salud Pública (Sivigila) | Período 2016 - 2025")
 st.markdown("---")
 
-# 2. SISTEMA DE CARGA DIRECTA DESDE GITHUB RELEASES
-# --- 2. SISTEMA DE CARGA CON AUTODETECCIÓN DE RELEASES ---
+# 2. SISTEMA DE CARGA DIRECTA DESDE RELEASES PÚBLICAS
 @st.cache_data
 def cargar_datos_sivigila_directo():
-    # Esta estructura inteligente detecta el nombre de tu usuario en GitHub automáticamente
-    try:
-        # Buscamos el repositorio actual en la máquina virtual de Streamlit
-        repo_actual = os.getenv("STREAMLIT_GIT_REPO", "")
-        if repo_actual:
-            # Si detecta el repositorio, extrae el usuario e integra la descarga directa
-            usuario_github = repo_actual.split("/")[0]
-            url_directa_excel = f"https://github.com{usuario_github}/sivigila-dashboard/releases/download/v1.0.0/base_datos_unificada.xlsx"
-        else:
-            # Ruta de respaldo por si se ejecuta de forma local o externa
-            url_directa_excel = "https://github.comcaticoa3/colombia_mapa/raw/master/base_datos_unificada.xlsx"
+    # Enlace de respaldo seguro que contiene exactamente tu base unificada de 315.832 filas
+    url_directa_excel = "https://github.com"
 
-        # Descarga y procesa las 315.832 filas en la nube usando calamine
+    try:
+        # Descarga y procesa la matriz masiva en la nube usando el motor calamine
         df_raw = pd.read_excel(url_directa_excel, engine="calamine")
         
         # Limpieza estándar de nombres de columnas
@@ -63,8 +53,10 @@ def cargar_datos_sivigila_directo():
         st.error(f"Error al procesar el archivo unificado de las Releases: {e}")
         return None
 
+# Ejecutar la carga directa
+df = cargar_datos_sivigila_directo()
 
-# 3. VERIFICAR DESPLIEGUE DEL INFORME
+# 3. CONSTRUCCIÓN DEL INFORME (Se ejecuta solo si la descarga es exitosa)
 if df is not None:
     # --- PANEL LATERAL DE FILTROS ---
     st.sidebar.header("🔍 Filtros de Población")
@@ -85,7 +77,7 @@ if df is not None:
     )
     dptos_sel = st.sidebar.multiselect("Filtrar por Departamento:", lista_dptos)
 
-    # Filtro 3: Selectores de Vulnerabilidades de Sivigila (Solo filtra los que son igual a 1)
+    # Filtro 3: Selectores de Vulnerabilidades de Sivigila
     st.sidebar.markdown("---")
     st.sidebar.subheader("👥 Grupos de Riesgo y Vulnerabilidad")
     
@@ -117,9 +109,9 @@ if df is not None:
     if dptos_sel:
         df_filtrado = df_filtrado[df_filtrado["Departamento_residencia"].isin(dptos_sel)]
     if vulnerabilidad_elegida != "Ninguno":
-        columna_tecnica = [k for k, v in diccionario_vulnerabilidades.items() if v == vulnerabilidad_elegida][0]
-        if columna_tecnica in df_filtrado.columns:
-            df_filtrado = df_filtrado[df_filtrado[columna_tecnica].astype(str).str.startswith(('1', '1.0'))]
+        columna_tecnica = [k for k, v in diccionario_vulnerabilidades.items() if v == vulnerabilidad_elegida]
+        if columna_tecnica and columna_tecnica[0] in df_filtrado.columns:
+            df_filtrado = df_filtrado[df_filtrado[columna_tecnica[0]].astype(str).str.startswith(('1', '1.0'))]
 
     # --- INDICADORES CLAVE (KPIs) ---
     st.markdown("### 📊 Indicadores Clave del Período Seleccionado")
@@ -201,14 +193,15 @@ if df is not None:
                 "TOLIMA": [4.4389, -75.2322], "VALLE DEL CAUCA": [3.4516, -76.5320], "VAUPES": [1.1984, -70.1733], "VICHADA": [6.1848, -67.4858]
             }
             
-            df_geo["latitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None])[0])
-            df_geo["longitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None])[1])
+            df_geo["latitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None]))
+            df_geo["longitud"] = df_geo["Departamento_residencia"].map(lambda x: coordenadas_colombia.get(x, [None, None]))
             df_geo = df_geo.dropna(subset=["latitud", "longitud"])
             
             fig_mapa_seguro = px.scatter_geo(
                 df_geo, lat="latitud", lon="longitud", size="Total Casos", color="Total Casos",
                 hover_name="Departamento_residencia", color_continuous_scale="Reds", title="Focos Epidemiológicos de Intento de Suicidio en Colombia", size_max=40
             )
+
 
             fig_mapa_seguro.update_geos(center=dict(lon=-74.0, lat=4.5), projection_scale=6, showcountries=True, countrycolor="Silver", showland=True, landcolor="White")
             fig_mapa_seguro.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
