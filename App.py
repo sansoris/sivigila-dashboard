@@ -30,8 +30,8 @@ st.markdown("---")
 
 # ruta_archivo = "C:/Users/Jennyfer Cuesta/Downloads/Bases de datos/base_datos_unificada.xlsx"
 # ruta_archivo = "base_datos_unificada.xlsx"
-# id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
-id_google_drive = "103662314064127581655"
+id_google_drive = "1xz7qPIezfg0kHtjeKFVljLO8VgvgoYN7"
+# id_google_drive = "103662314064127581655"
 
 
 # Esta estructura limpia se encargará de descargar el Excel de forma automática
